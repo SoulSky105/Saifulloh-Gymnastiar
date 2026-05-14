@@ -880,7 +880,7 @@
                     </a>
                 </div>
                 <div class="flex gap-4 mt-10 justify-center md:justify-start">
-                    <a href="https://www.instagram.com/luufiias/" target="_blank" rel="noopener noreferrer"
+                    <a href="https://www.instagram.com/saifulloh_gymnastiar/" target="_blank" rel="noopener noreferrer"
                         class="w-11 h-11 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center hover:bg-primary hover:text-white transition-all hover:scale-110 active:scale-95">
                         <i class="fab fa-instagram"></i>
                     </a>
@@ -1304,7 +1304,7 @@
             <p class="text-gray-400 mb-8">Saifulloh Gymnastiar © <span id="year">2024</span> – Semua hak dilindungi.
             </p>
             <div class="flex justify-center gap-5 mb-8">
-                <a href="https://www.instagram.com/luufiias/" target="_blank" rel="noopener noreferrer"
+                <a href="https://www.instagram.com/saifulloh_gymnastiar/" target="_blank" rel="noopener noreferrer"
                     class="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all duration-300 transform hover:scale-110 active:scale-95 group shadow-lg">
                     <i class="fab fa-instagram text-xl group-hover:rotate-12 transition-transform"></i>
                 </a>
@@ -2487,119 +2487,125 @@ window.handleProjectClick = function(index, tipeMedia, videoId, judul) {
         }
 
         // =====================================================
-        // 📝 FORM SUBMISSION HANDLERS
-        // =====================================================
-        function setupFormListeners() {
-            // ===== PROJECT FORM =====
-            const pf = document.getElementById("project-form");
-            if (pf) pf.addEventListener("submit", async e => {
-                e.preventDefault();
-                const btn = e.target.querySelector("button[type='submit']");
-                const orig = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
-
-                try {
-                    let fileUrl = "";
-                    let thumbnailUrl = "";
-                    const projType = document.getElementById("proj-type").value;
-
-                    console.log("Project Type:", projType);
-
-                    if (projType === 'video') {
-                        // YouTube URL/ID
-                        const youtubeUrl = document.getElementById("proj-youtube-url").value.trim();
-                        if (youtubeUrl) {
-                            const videoId = extractYouTubeID(youtubeUrl);
-                            if (videoId) {
-                                fileUrl = videoId;
-                                console.log("YouTube Video ID:", fileUrl);
-                            } else {
-                                throw new Error("YouTube URL tidak valid");
-                            }
-                        }
-
-                        // Upload thumbnail jika ada
-                        const thumbnailFile = document.getElementById("proj-thumbnail-file")?.files[0];
-                        if (thumbnailFile) {
-                            console.log("Uploading thumbnail:", thumbnailFile.name);
-                            thumbnailUrl = await uploadFile(thumbnailFile);
-                            console.log("Thumbnail URL saved:", thumbnailUrl);
-                        }
+// 📝 FORM SUBMISSION HANDLERS
+// =====================================================
+function setupFormListeners() {
+    // ===== PROJECT FORM =====
+    const pf = document.getElementById("project-form");
+    if (pf) pf.addEventListener("submit", async e => {
+        e.preventDefault();
+        const btn = e.target.querySelector("button[type='submit']");
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengunggah...';
+        
+        try {
+            let fileUrl = "";
+            let thumbnailUrl = "";
+            const projType = document.getElementById("proj-type").value;
+            
+            console.log("Project Type:", projType);
+            
+            if (projType === 'video') {
+                // YouTube URL/ID
+                const youtubeUrl = document.getElementById("proj-youtube-url").value.trim();
+                if (youtubeUrl) {
+                    // Extract YouTube ID dari URL
+                    const videoId = extractYouTubeID(youtubeUrl);
+                    if (videoId) {
+                        fileUrl = videoId; // Simpan ID video saja
+                        console.log("YouTube Video ID:", fileUrl);
                     } else {
-                        // Upload image
-                        const imageFile = document.getElementById("proj-file").files[0];
-                        if (imageFile) {
-                            fileUrl = await uploadFile(imageFile);
-                            thumbnailUrl = fileUrl;
-                        }
+                        throw new Error("YouTube URL tidak valid");
                     }
-
-                    console.log("Final URLs - File:", fileUrl, "Thumbnail:", thumbnailUrl);
-
-                    const fields = [
-                        document.getElementById("proj-title").value,
-                        document.getElementById("proj-category").value,
-                        projType,
-                        fileUrl,
-                        thumbnailUrl
-                    ];
-
-                    console.log("Saving to sheet:", fields);
-                    await saveToSheet("project", fields);
-
-                    e.target.reset();
-                    const projPreview = document.getElementById("proj-preview");
-                    const projPlaceholder = document.getElementById("proj-placeholder");
-                    const thumbPreview = document.getElementById("proj-thumbnail-preview");
-                    const thumbPlaceholder = document.getElementById("proj-thumb-placeholder");
-
-                    if (projPreview) projPreview.classList.add("hidden");
-                    if (projPlaceholder) projPlaceholder.classList.remove("hidden");
-                    if (thumbPreview) thumbPreview.classList.add("hidden");
-                    if (thumbPlaceholder) thumbPlaceholder.classList.remove("hidden");
-
-                    closeModal("project-modal");
-                    await loadData("projects");
-                    showToast('✅ Proyek tersimpan', 'success');
-
-                } catch (err) {
-                    console.error("Error saving project:", err);
-                    showToast('❌ Gagal: ' + err.message, 'error');
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = orig;
                 }
-            });
-
-            // Certificate form (tetap sama)
-            const cf = document.getElementById("cert-form");
-            if (cf) cf.addEventListener("submit", async e => {
-                e.preventDefault();
-                const btn = e.target.querySelector("button[type='submit']");
-                const orig = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload...';
-                try {
-                    const f = document.getElementById("cert-file");
-                    const url = await uploadFile(f.files[0]);
-                    await saveToSheet("certificate", [
-                        document.getElementById("cert-name").value,
-                        document.getElementById("cert-year").value,
-                        document.getElementById("cert-issuer").value,
-                        url
-                    ]);
-                    e.target.reset();
-                    closeModal("cert-modal");
-                    await loadData("certificates");
-                    showToast('✅ Sertifikat tersimpan', 'success');
-                } catch (err) {
-                    alert(err.message);
+                
+                // Upload thumbnail jika ada
+                const thumbnailFile = document.getElementById("proj-thumbnail-file")?.files[0];
+                if (thumbnailFile) {
+                    console.log("Uploading thumbnail:", thumbnailFile.name);
+                    thumbnailUrl = await uploadFile(thumbnailFile);
+                    console.log("Thumbnail URL saved:", thumbnailUrl);
                 }
-                btn.disabled = false;
-                btn.innerHTML = orig;
-            });
+            } else {
+                // Upload image
+                const imageFile = document.getElementById("proj-file").files[0];
+                if (imageFile) {
+                    fileUrl = await uploadFile(imageFile);
+                    thumbnailUrl = fileUrl;
+                }
+            }
+            
+            console.log("Final URLs - File:", fileUrl, "Thumbnail:", thumbnailUrl);
+            
+            // Simpan ke Google Sheet
+            // Urutan: Judul, Kategori, TipeMedia, FileURL (YouTube ID), ThumbnailURL, Timestamp
+            const fields = [
+                document.getElementById("proj-title").value,
+                document.getElementById("proj-category").value,
+                projType,
+                fileUrl,
+                thumbnailUrl
+            ];
+            
+            console.log("Saving to sheet:", fields);
+            await saveToSheet("project", fields);
+            
+            // Reset form
+            e.target.reset();
+            const projPreview = document.getElementById("proj-preview");
+            const projPlaceholder = document.getElementById("proj-placeholder");
+            const thumbPreview = document.getElementById("proj-thumbnail-preview");
+            const thumbPlaceholder = document.getElementById("proj-thumb-placeholder");
+            
+            if (projPreview) projPreview.classList.add("hidden");
+            if (projPlaceholder) projPlaceholder.classList.remove("hidden");
+            if (thumbPreview) thumbPreview.classList.add("hidden");
+            if (thumbPlaceholder) thumbPlaceholder.classList.remove("hidden");
+            
+            closeModal("project-modal");
+            await loadData("projects");
+            showToast('✅ Proyek tersimpan', 'success');
+            
+        } catch (err) {
+            console.error("Error saving project:", err);
+            showToast('❌ Gagal: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = orig;
         }
+    });
+
+    // ===== CERTIFICATE FORM =====
+    const cf = document.getElementById("cert-form");
+    if (cf) cf.addEventListener("submit", async e => {
+        e.preventDefault();
+        const btn = e.target.querySelector("button[type='submit']");
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Upload...';
+        try {
+            const f = document.getElementById("cert-file");
+            const url = await uploadFile(f.files[0]);
+            await saveToSheet("certificate", [
+                document.getElementById("cert-name").value,
+                document.getElementById("cert-year").value,
+                document.getElementById("cert-issuer").value,
+                url
+            ]);
+            e.target.reset();
+            closeModal("cert-modal");
+            await loadData("certificates");
+            showToast('✅ Sertifikat tersimpan', 'success');
+        } catch (err) {
+            alert(err.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    });
+}
+
+            
 
         // =====================================================
         // ✉️ SEND EMAIL VIA EMAILJS
