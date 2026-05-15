@@ -987,7 +987,7 @@
                     <!-- About Text -->
                     <div class="order-1 md:order-2" data-aos="fade-left" data-aos-duration="800">
                         <h3 class="text-2xl font-bold mb-5 flex items-center gap-3">
-                            <span class="text-3xl">👋</span> Halo! Saya Saifulloh
+                            <span class="text-3xl">👋</span> Halo! Saya Saiful
                         </h3>
                         <p class="text-gray-600 dark:text-gray-400 leading-relaxed mb-5">
                             Saya adalah mahasiswa aktif Program Studi Informatika di <strong
@@ -1058,8 +1058,8 @@
                             Pro</li>
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> After Effects
                         </li>
-                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Motion Graphics
-                        </li>
+                        
+                        
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Color Grading
                         </li>
                     </ul>
@@ -1084,7 +1084,7 @@
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> JavaScript</li>
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Tailwind CSS
                         </li>
-                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Basic PHP</li>
+                        
                     </ul>
                     <div class="mb-2 flex justify-between text-sm">
                         <span>Profisiensi</span>
@@ -1108,7 +1108,7 @@
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Canva Pro</li>
                         <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Poster Design
                         </li>
-                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> UI Basic</li>
+                        
                     </ul>
                     <div class="mb-2 flex justify-between text-sm">
                         <span>Profisiensi</span>
@@ -1882,32 +1882,31 @@
         }
 
         // =====================================================
-// 🪟 CLOSE MEDIA LIGHTBOX (FIXED)
-// =====================================================
-function closeMediaModal(e) {
-    if (e) e.stopPropagation();
-    
-    // Tutup lightbox
-    document.getElementById('image-lightbox')?.classList.add('hidden');
-    document.getElementById('video-lightbox')?.classList.add('hidden');
-    
-    // Stop video iframe dengan cara yang lebih efektif
-    const videoIframe = document.getElementById('lightbox-video');
-    if (videoIframe) {
-        // Hapus src untuk stop video sepenuhnya
-        videoIframe.src = '';
-        
-        // Tunggu sebentar, lalu clone untuk memastikan benar-benar stop
-        setTimeout(() => {
-            const newIframe = videoIframe.cloneNode(false);
-            videoIframe.parentNode.replaceChild(newIframe, videoIframe);
-        }, 100);
-    }
-    
-    // Clear gambar
-    const img = document.getElementById('lightbox-img');
-    if (img) img.src = '';
-}
+        // 🪟 CLOSE MEDIA LIGHTBOX (FIXED)
+        // =====================================================
+        function closeMediaModal(e) {
+            if (e) e.stopPropagation();
+            // Tutup lightbox
+            document.getElementById('image-lightbox')?.classList.add('hidden');
+            document.getElementById('video-lightbox')?.classList.add('hidden');
+            
+            // Stop video iframe dengan cara yang lebih efektif
+            const videoIframe = document.getElementById('lightbox-video');
+            if (videoIframe) {
+                videoIframe.src = '';
+                setTimeout(() => {
+                    const newIframe = videoIframe.cloneNode(false);
+                    videoIframe.parentNode.replaceChild(newIframe, videoIframe);
+                }, 100);
+            }
+            
+            // Clear gambar & cegah toast error palsu saat close
+            const img = document.getElementById('lightbox-img');
+            if (img) {
+                img.onerror = null; // Hapus handler error sebelum src dikosongkan
+                img.src = '';
+            }
+        }
         
         // Fungsi untuk menyembunyikan loading overlay video
         function hideVideoLoading() {
