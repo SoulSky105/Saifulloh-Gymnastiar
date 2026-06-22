@@ -1060,7 +1060,7 @@
                         </li>
                         
                         
-                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Davinci
+                        <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Color Grading
                         </li>
                     </ul>
                     <div class="mb-2 flex justify-between text-sm">
@@ -1658,185 +1658,283 @@
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
 
     <script>
-      // Variabel untuk menyimpan state musik
-      let musicWasPlaying = false;
-      let musicCurrentTime = 0;
-        // =====================================================
-        // 🎵 SPOTIFY MUSIC PLAYER
-        // =====================================================
-        const songs = [
-            { title: "Impostor Syndrome", artist: "Sidney Gish", src: "audio/Impostor Syndrome - Sidney Gish.mp3", cover: "cover/impostor syndrome.jpg" },
-            { title: "Line Without a Hook", artist: "Ricky Montgomery", src: "audio/Ricky Montgomery - Line Without a Hook.mp3", cover: "cover/Line Without a Hook.jpg" },
-            { title: "Multo", artist: "Cup of Joe", src: "audio/Cup of Joe performs Multo LIVE on Wish 107.5 Bus - Wish 107.5.mp3", cover: "cover/multo.jpg" },
-        ];
+// Variabel untuk menyimpan state musik
+let musicWasPlaying = false;
+let musicCurrentTime = 0;
 
-        let currentIndex = 0, isPlaying = false, isShuffle = false, isRepeat = false;
-        const fab = document.getElementById('music-fab'), player = document.getElementById('spotify-player'), closeBtn = document.getElementById('close-player');
-        const playBtn = document.getElementById('play-btn'), prevBtn = document.getElementById('prev-btn'), nextBtn = document.getElementById('next-btn');
-        const shuffleBtn = document.getElementById('shuffle-btn'), repeatBtn = document.getElementById('repeat-btn');
-        const titleEl = document.getElementById('song-title'), artistEl = document.getElementById('song-artist'), playlistEl = document.getElementById('playlist');
-        const audio = document.getElementById('audio-player'), progressBar = document.getElementById('progress-bar');
-        const currentTimeEl = document.getElementById('current-time'), durationEl = document.getElementById('duration');
+// =====================================================
+// 🎵 SPOTIFY MUSIC PLAYER
+// =====================================================
+const songs = [
+  { title: "Impostor Syndrome", artist: "Sidney Gish", src: "audio/Impostor Syndrome - Sidney Gish.mp3", cover: "cover/impostor syndrome.jpg" },
+  { title: "Line Without a Hook", artist: "Ricky Montgomery", src: "audio/Ricky Montgomery - Line Without a Hook.mp3", cover: "cover/Line Without a Hook.jpg" },
+  { title: "Multo", artist: "Cup of Joe", src: "audio/Cup of Joe performs Multo LIVE on Wish 107.5 Bus - Wish 107.5.mp3", cover: "cover/multo.jpg" },
+];
+let currentIndex = 0, isPlaying = false, isShuffle = false, isRepeat = false;
+const fab = document.getElementById('music-fab'), player = document.getElementById('spotify-player'), closeBtn = document.getElementById('close-player');
+const playBtn = document.getElementById('play-btn'), prevBtn = document.getElementById('prev-btn'), nextBtn = document.getElementById('next-btn');
+const shuffleBtn = document.getElementById('shuffle-btn'), repeatBtn = document.getElementById('repeat-btn');
+const titleEl = document.getElementById('song-title'), artistEl = document.getElementById('song-artist'), playlistEl = document.getElementById('playlist');
+const audio = document.getElementById('audio-player'), progressBar = document.getElementById('progress-bar');
+const currentTimeEl = document.getElementById('current-time'), durationEl = document.getElementById('duration');
+fab?.addEventListener('click', () => player.classList.add('open'));
+closeBtn?.addEventListener('click', () => player.classList.remove('open'));
+document.addEventListener('click', (e) => {
+  if (!player.contains(e.target) && !fab.contains(e.target)) player.classList.remove('open');
+});
+function loadSong(index) {
+  currentIndex = index;
+  audio.src = songs[index].src;
+  titleEl.textContent = songs[index].title;
+  artistEl.textContent = songs[index].artist;
+  const albumArt = document.querySelector('.album-art');
+  if (songs[index].cover) {
+    const img = new Image();
+    img.src = songs[index].cover;
+    img.onload = () => albumArt.style.setProperty('background', `url('${songs[index].cover}') center/cover no-repeat`, 'important');
+    img.onerror = () => albumArt.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+  } else {
+    albumArt.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
+  }
+  progressBar.value = 0;
+  currentTimeEl.textContent = "0:00";
+  durationEl.textContent = "0:00";
+  progressBar.style.setProperty('background', '#4d4d4d', 'important');
+  renderPlaylist();
+}
+function renderPlaylist() {
+  playlistEl.innerHTML = '';
+  songs.forEach((song, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${song.title} - ${song.artist}`;
+    li.addEventListener('click', () => { loadSong(i); togglePlay(); });
+    if (i === currentIndex) li.classList.add('active');
+    playlistEl.appendChild(li);
+  });
+}
+function togglePlay() {
+  if (audio.paused) {
+    audio.play().catch(err => showToast('❌ File audio tidak ditemukan', 'error'));
+    isPlaying = true;
+    document.getElementById('play-icon').style.display = 'none';
+    document.getElementById('pause-icon').style.display = 'block';
+    fab.classList.add('playing');
+  } else {
+    audio.pause();
+    isPlaying = false;
+    document.getElementById('play-icon').style.display = 'block';
+    document.getElementById('pause-icon').style.display = 'none';
+    fab.classList.remove('playing');
+  }
+}
+function nextSong() {
+  if (isShuffle) currentIndex = Math.floor(Math.random() * songs.length);
+  else currentIndex = (currentIndex + 1) % songs.length;
+  loadSong(currentIndex);
+  if (isPlaying) audio.play();
+}
+function prevSong() {
+  currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+  loadSong(currentIndex);
+  if (isPlaying) audio.play();
+}
+shuffleBtn?.addEventListener('click', () => {
+  isShuffle = !isShuffle;
+  shuffleBtn.style.color = isShuffle ? 'var(--spotify-green)' : '';
+});
+repeatBtn?.addEventListener('click', () => {
+  isRepeat = !isRepeat;
+  repeatBtn.style.color = isRepeat ? 'var(--spotify-green)' : '';
+});
+function formatTime(sec) {
+  if (isNaN(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+audio.addEventListener('loadedmetadata', () => {
+  durationEl.textContent = formatTime(audio.duration);
+  progressBar.max = audio.duration;
+});
+audio.addEventListener('timeupdate', () => {
+  if (audio.duration) {
+    progressBar.value = audio.currentTime;
+    currentTimeEl.textContent = formatTime(audio.currentTime);
+    durationEl.textContent = formatTime(audio.duration);
+    const percent = (audio.currentTime / audio.duration) * 100;
+    progressBar.style.setProperty('background', `linear-gradient(to right, #1DB954 ${percent}%, #4d4d4d ${percent}%)`, 'important');
+  }
+});
+progressBar?.addEventListener('input', function () {
+  if (audio.duration) audio.currentTime = this.value;
+});
+audio.addEventListener('ended', () => {
+  if (isRepeat) {
+    audio.currentTime = 0;
+    audio.play();
+  } else nextSong();
+});
+audio.addEventListener('error', () => showToast('❌ File audio tidak ditemukan', 'error'));
+playBtn?.addEventListener('click', togglePlay);
+nextBtn?.addEventListener('click', nextSong);
+prevBtn?.addEventListener('click', prevSong);
+loadSong(currentIndex);
 
-        fab?.addEventListener('click', () => player.classList.add('open'));
-        closeBtn?.addEventListener('click', () => player.classList.remove('open'));
-        document.addEventListener('click', (e) => {
-            if (!player.contains(e.target) && !fab.contains(e.target)) player.classList.remove('open');
-        });
+// =====================================================
+// ⚙️ GLOBAL STATE & API FUNCTIONS
+// =====================================================
+let isAdmin = false, cropper = null;
+let projects = [], certificates = [];
+const API_URL = "https://script.google.com/macros/s/AKfycbyrmXE8ToZ6LOQGIpijKVSX36JeShSQ3iZ0RGPvYVoyRzWtrNuJiAyr0RxMflAcH8MdbQ/exec";
 
-        function loadSong(index) {
-            currentIndex = index;
-            audio.src = songs[index].src;
-            titleEl.textContent = songs[index].title;
-            artistEl.textContent = songs[index].artist;
-            const albumArt = document.querySelector('.album-art');
-            if (songs[index].cover) {
-                const img = new Image();
-                img.src = songs[index].cover;
-                img.onload = () => albumArt.style.setProperty('background', `url('${songs[index].cover}') center/cover no-repeat`, 'important');
-                img.onerror = () => albumArt.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
-            } else {
-                albumArt.style.setProperty('background', 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 'important');
-            }
-            progressBar.value = 0;
-            currentTimeEl.textContent = "0:00";
-            durationEl.textContent = "0:00";
-            progressBar.style.setProperty('background', '#4d4d4d', 'important');
-            renderPlaylist();
-        }
+const toBase64 = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result.split(',')[1]);
+  reader.onerror = reject;
+});
 
-        function renderPlaylist() {
-            playlistEl.innerHTML = '';
-            songs.forEach((song, i) => {
-                const li = document.createElement('li');
-                li.textContent = `${song.title} - ${song.artist}`;
-                li.addEventListener('click', () => { loadSong(i); togglePlay(); });
-                if (i === currentIndex) li.classList.add('active');
-                playlistEl.appendChild(li);
-            });
-        }
-          
-        function togglePlay() {
-            if (audio.paused) {
-                audio.play().catch(err => showToast('❌ File audio tidak ditemukan', 'error'));
-                isPlaying = true;
-                document.getElementById('play-icon').style.display = 'none';
-                document.getElementById('pause-icon').style.display = 'block';
-                fab.classList.add('playing');
-            } else {
-                audio.pause();
-                isPlaying = false;
-                document.getElementById('play-icon').style.display = 'block';
-                document.getElementById('pause-icon').style.display = 'none';
-                fab.classList.remove('playing');
-            }
-        }
+// 📁 UPLOAD FILE (Dengan Token)
+async function uploadFile(file) {
+  if (!file) return null;
+  
+  const token = sessionStorage.getItem('admin_token');
+  if (!token) {
+    showToast('❌ Session expired. Silakan login ulang.', 'error');
+    setTimeout(() => openLoginModal(), 1000);
+    return null;
+  }
+  
+  try {
+    const base64 = await toBase64(file);
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ 
+        action: "upload", 
+        base64, 
+        mimeType: file.type, 
+        filename: file.name,
+        token: token
+      })
+    });
+    const data = await res.json();
+    if (data.status !== "success") throw new Error(data.message || "Upload failed");
+    return data.url;
+  } catch (err) {
+    showToast('❌ Upload gagal: ' + err.message, 'error');
+    return null;
+  }
+}
 
-        function nextSong() {
-            if (isShuffle) currentIndex = Math.floor(Math.random() * songs.length);
-            else currentIndex = (currentIndex + 1) % songs.length;
-            loadSong(currentIndex);
-            if (isPlaying) audio.play();
-        }
+// 💾 SAVE KE SHEET (Dengan Token)
+async function saveToSheet(type, fields) {
+  const token = sessionStorage.getItem('admin_token');
+  if (!token) {
+    showToast('❌ Session expired. Silakan login ulang.', 'error');
+    throw new Error('No token');
+  }
+  
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ 
+      action: "save", 
+      type, 
+      fields, 
+      token: token
+    })
+  });
+  
+  const data = await res.json();
+  if (data.status !== "success") throw new Error(data.message || "Save failed");
+}
 
-        function prevSong() {
-            currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-            loadSong(currentIndex);
-            if (isPlaying) audio.play();
-        }
+// 🗑️ DELETE (Dengan Token)
+async function deleteFromSheet(type, timestamp) {
+  // ✅ Gunakan window.sessionStorage
+  const token = window.sessionStorage.getItem('admin_token');
+  
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ 
+      action: "delete", 
+      type, 
+      timestamp, 
+      token: token
+    })
+  });
+  return await res.json();
+}
 
-        shuffleBtn?.addEventListener('click', () => {
-            isShuffle = !isShuffle;
-            shuffleBtn.style.color = isShuffle ? 'var(--spotify-green)' : '';
-        });
+// =====================================================
+// 🔐 AUTHENTICATION FUNCTIONS (UPDATED - FIX)
+// =====================================================
 
-        repeatBtn?.addEventListener('click', () => {
-            isRepeat = !isRepeat;
-            repeatBtn.style.color = isRepeat ? 'var(--spotify-green)' : '';
-        });
+// 🔐 LOGIN DENGAN TOKEN
+// ✅ VERSI BARU (dengan token):
+async function handleLogin(e) {
+  e.preventDefault();
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  const btn = e.target.querySelector('button[type="submit"]');
+  const orig = btn.innerHTML;
+  
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifikasi...';
 
-        function formatTime(sec) {
-            if (isNaN(sec)) return "0:00";
-            const m = Math.floor(sec / 60);
-            const s = Math.floor(sec % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ 
+        action: "login", 
+        username: user, 
+        password: pass 
+      })
+    });
+    const data = await res.json();
+    
+    if (data.status === "success") {
+      // ✅ SIMPAN TOKEN KE SESSION STORAGE
+      sessionStorage.setItem('admin_token', data.token);
+      isAdmin = true;
+      closeModal('login-modal');
+      updateAdminUI();
+      showToast('✅ Admin aktif', 'success');
+      loadData('projects');
+      loadData('certificates');
+    } else {
+      showToast('❌ ' + (data.message || 'Login gagal'), 'error');
+    }
+  } catch (err) {
+    showToast('❌ Gagal koneksi ke server', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
 
-        audio.addEventListener('loadedmetadata', () => {
-            durationEl.textContent = formatTime(audio.duration);
-            progressBar.max = audio.duration;
-        });
+// 🔄 Update UI Admin
+function updateAdminUI() {
+  const show = isAdmin;
+  document.getElementById('admin-btn').classList.toggle('hidden', show);
+  document.getElementById('logout-btn').classList.toggle('hidden', !show);
+  document.getElementById('profile-admin-controls').classList.toggle('hidden', !show);
+  document.getElementById('add-project-btn').classList.toggle('hidden', !show);
+  document.getElementById('add-cert-btn').classList.toggle('hidden', !show);
+}
 
-        audio.addEventListener('timeupdate', () => {
-            if (audio.duration) {
-                progressBar.value = audio.currentTime;
-                currentTimeEl.textContent = formatTime(audio.currentTime);
-                durationEl.textContent = formatTime(audio.duration);
-                const percent = (audio.currentTime / audio.duration) * 100;
-                progressBar.style.setProperty('background', `linear-gradient(to right, #1DB954 ${percent}%, #4d4d4d ${percent}%)`, 'important');
-            }
-        });
-
-        progressBar?.addEventListener('input', function () {
-            if (audio.duration) audio.currentTime = this.value;
-        });
-
-        audio.addEventListener('ended', () => {
-            if (isRepeat) {
-                audio.currentTime = 0;
-                audio.play();
-            } else nextSong();
-        });
-
-        audio.addEventListener('error', () => showToast('❌ File audio tidak ditemukan', 'error'));
-
-        playBtn?.addEventListener('click', togglePlay);
-        nextBtn?.addEventListener('click', nextSong);
-        prevBtn?.addEventListener('click', prevSong);
-        loadSong(currentIndex);
-
-        // =====================================================
-        // ⚙️ GLOBAL STATE & API FUNCTIONS
-        // =====================================================
-        let isAdmin = false, cropper = null;
-        let projects = [], certificates = [];
-        const API_URL = "https://script.google.com/macros/s/AKfycbxv86QHa-1fhkr9s-RJNPwQH_UzGTra6GzHUqlxaqVqpVobRSPJNb-D4GJ-OOvUFaN7Gg/exec";
-
-        const toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = reject;
-        });
-
-        async function uploadFile(file) {
-            if (!file) return null;
-            const base64 = await toBase64(file);
-            const res = await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "upload", base64, mimeType: file.type, filename: file.name })
-            });
-            const data = await res.json();
-            return data.url;
-        }
-
-        async function saveToSheet(type, fields) {
-            await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "save", type, fields })
-            });
-        }
-
-        async function deleteFromSheet(type, timestamp) {
-            const response = await fetch(API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain" },
-                body: JSON.stringify({ action: "delete", type, timestamp })
-            });
-            return await response.json();
-        }
+// 🚪 LOGOUT
+function logout() {
+  isAdmin = false;
+  sessionStorage.removeItem('admin_token');
+  updateAdminUI();
+  loadData('projects'); 
+  loadData('certificates');
+  showToast('👋 Logout berhasil', 'info');
+}
 
         // =====================================================
         // 🪟 MODAL & LIGHTBOX FUNCTIONS
@@ -2223,13 +2321,27 @@ window.openVideoLightbox = function(videoId, title) {
                 if (!Array.isArray(list)) throw new Error("Invalid format");
                 if (type === "projects") projects = list; else certificates = list;
                 console.log(`📊 Loaded ${list.length} ${type}`);
-                if (list.length === 0) {
+
+                // 🔎 FILTER BERDASARKAN KATEGORI (khusus projects)
+                // __idx menyimpan index ASLI di array penuh, supaya tombol hapus / klik
+                // tetap merujuk item yang benar walaupun grid sedang difilter.
+                let displayList = list.map((item, originalIdx) => ({ ...item, __idx: originalIdx }));
+                if (type === "projects") {
+                    const activeBtn = document.querySelector('.filter-btn.active');
+                    const activeFilter = (activeBtn?.dataset.filter || 'all').toLowerCase();
+                    if (activeFilter !== 'all') {
+                        displayList = displayList.filter(item => (item.Kategori || '').toLowerCase() === activeFilter);
+                    }
+                }
+
+                if (displayList.length === 0) {
                     grid.innerHTML = `<p class="text-center text-gray-500 col-span-full py-10">
-                        📭 Belum ada ${type === "projects" ? "proyek" : "sertifikat"}.
+                        📭 ${type === "projects" ? "Belum ada proyek di kategori ini." : "Belum ada sertifikat."}
                     </p>`;
                     return;
                 }
-                grid.innerHTML = list.map((item, idx) => {
+                grid.innerHTML = displayList.map((item, mapIdx) => {
+                    const idx = item.__idx;
                     if (type === "projects") {
     const isVid = (item.TipeMedia || "").toLowerCase() === "video";
     
@@ -2390,33 +2502,6 @@ window.handleProjectClick = function(index, tipeMedia, videoId, judul) {
             if (typeof AOS !== 'undefined') AOS.refresh();
         }
 
-        function handleLogin(e) {
-            e.preventDefault();
-            if (document.getElementById('username').value === 'luufiias' && document.getElementById('password').value === 'ngampel105') {
-                isAdmin = true;
-                closeModal('login-modal');
-                document.getElementById('admin-btn').classList.add('hidden');
-                document.getElementById('logout-btn').classList.remove('hidden');
-                document.getElementById('profile-admin-controls').classList.remove('hidden');
-                document.getElementById('add-project-btn').classList.remove('hidden');
-                document.getElementById('add-cert-btn').classList.remove('hidden');
-                loadData('projects');
-                loadData('certificates');
-                showToast('✅ Admin aktif', 'success');
-            } else showToast('❌ Login gagal', 'error');
-        }
-
-        function logout() {
-            isAdmin = false;
-            document.getElementById('admin-btn').classList.remove('hidden');
-            document.getElementById('logout-btn').classList.add('hidden');
-            document.getElementById('profile-admin-controls').classList.add('hidden');
-            document.getElementById('add-project-btn').classList.add('hidden');
-            document.getElementById('add-cert-btn').classList.add('hidden');
-            loadData('projects');
-            loadData('certificates');
-            showToast('👋 Logout berhasil', 'info');
-        }
 
         // =====================================================
         // ✂️ CROP PROFILE IMAGE FUNCTIONS
@@ -2461,10 +2546,11 @@ window.handleProjectClick = function(index, tipeMedia, videoId, judul) {
                 btn.disabled = true;
                 const url = await uploadFile(file);
                 if (url) {
-                    const res = await fetch(API_URL, {
+                    const token = sessionStorage.getItem('admin_token');
+                const res = await fetch(API_URL, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain" },
-                        body: JSON.stringify({ action: "saveProfile", url })
+                        body: JSON.stringify({ action: "saveProfile", url, token })
                     });
                     const d = await res.json();
                     if (d.status === "success") {
@@ -2691,7 +2777,10 @@ function setupFormListeners() {
             const c = document.getElementById('toast-container'),
                 t = document.createElement('div');
             t.className = `toast ${type}`;
-            t.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2"></i>${msg}`;
+            const icon = document.createElement('i');
+            icon.className = `fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} mr-2`;
+            t.appendChild(icon);
+            t.appendChild(document.createTextNode(msg));
             c.appendChild(t);
             setTimeout(() => t.classList.add('show'), 100);
             setTimeout(() => {
@@ -2771,73 +2860,79 @@ function setupFormListeners() {
         });
 
         // =====================================================
-        // 🚀 DOM CONTENT LOADED - INITIALIZATION
-        // =====================================================
-        document.addEventListener("DOMContentLoaded", () => {
-            // Initialize AOS Animation
-            if (typeof AOS !== 'undefined') AOS.init({ duration: 800, once: true, offset: 100 });
-
-            // Initialize Particles.js
-            if (typeof particlesJS !== 'undefined' && document.getElementById('particles-js'))
-                particlesJS('particles-js', {
-                    particles: {
-                        number: { value: 30, density: { enable: true, value_area: 800 } },
-                        color: { value: '#3b82f6' },
-                        shape: { type: 'circle' },
-                        opacity: { value: 0.3, random: true },
-                        size: { value: 3, random: true },
-                        line_linked: { enable: true, distance: 150, color: '#3b82f6', opacity: 0.2, width: 1 },
-                        move: { enable: true, speed: 2, direction: 'none', random: true, straight: false, out_mode: 'out' }
-                    },
-                    interactivity: {
-                        detect_on: 'canvas',
-                        events: { onhover: { enable: true, mode: 'grab' }, onclick: { enable: true, mode: 'push' } },
-                        modes: { grab: { distance: 140, line_linked: { opacity: 0.6 } }, push: { particles_nb: 4 } }
-                    },
-                    retina_detect: true
-                });
-
-            // Initialize Theme & Profile
-            checkTheme();
-            loadProfileImage();
-
-            // Setup Drag & Drop Zones
-            setupDragDrop('proj-drop-zone', 'proj-file');
-            setupDragDrop('cert-drop-zone', 'cert-file');
-
-            // Setup Form Listeners
-            setupFormListeners();
-
-            // Setup Filter Buttons
-            document.querySelectorAll('.filter-btn').forEach(b =>
-                b.addEventListener('click', () => {
-                    document.querySelectorAll('.filter-btn').forEach(x => {
-                        x.classList.remove('bg-primary', 'text-white', 'border-primary');
-                        x.classList.add('border-gray-300', 'dark:border-gray-600');
-                    });
-                    b.classList.add('bg-primary', 'text-white', 'border-primary');
-                    b.classList.remove('border-gray-300', 'dark:border-gray-600');
-                    loadData("projects");
-                })
-            );
-
-            // Scroll Progress & Mobile Menu
-            window.addEventListener('scroll', updateScrollProgress);
-            document.getElementById('mobile-menu-btn')?.addEventListener('click', () =>
-                document.getElementById('mobile-menu')?.classList.toggle('hidden')
-            );
-
-            // Typing Effect Delay
-            setTimeout(initTypingEffect, 300);
-
-            // Load Initial Data
-            loadData("projects");
-            loadData("certificates");
-
-            // Update Year in Footer
-            document.getElementById('year').textContent = new Date().getFullYear();
-        });
-    </script>
+// 🚀 DOM CONTENT LOADED - INITIALIZATION
+// =====================================================
+document.addEventListener("DOMContentLoaded", () => {
+  // Initialize AOS Animation
+  if (typeof AOS !== 'undefined') AOS.init({ duration: 800, once: true, offset: 100 });
+  
+  // Initialize Particles.js
+  if (typeof particlesJS !== 'undefined' && document.getElementById('particles-js'))
+    particlesJS('particles-js', {
+      particles: {
+        number: { value: 30, density: { enable: true, value_area: 800 } },
+        color: { value: '#3b82f6' },
+        shape: { type: 'circle' },
+        opacity: { value: 0.3, random: true },
+        size: { value: 3, random: true },
+        line_linked: { enable: true, distance: 150, color: '#3b82f6', opacity: 0.2, width: 1 },
+        move: { enable: true, speed: 2, direction: 'none', random: true, straight: false, out_mode: 'out' }
+      },
+      interactivity: {
+        detect_on: 'canvas',
+        events: { onhover: { enable: true, mode: 'grab' }, onclick: { enable: true, mode: 'push' } },
+        modes: { grab: { distance: 140, line_linked: { opacity: 0.6 } }, push: { particles_nb: 4 } }
+      },
+      retina_detect: true
+    });
+  
+  // ✅ Cek session login dengan window.sessionStorage
+  if (sessionStorage.getItem('admin_token')) {
+    isAdmin = true;
+    updateAdminUI();
+  }
+  
+  // Initialize Theme & Profile
+  checkTheme();
+  loadProfileImage();
+  
+  // Setup Drag & Drop Zones
+  setupDragDrop('proj-drop-zone', 'proj-file');
+  setupDragDrop('cert-drop-zone', 'cert-file');
+  
+  // Setup Form Listeners
+  setupFormListeners();
+  
+  // Setup Filter Buttons
+  document.querySelectorAll('.filter-btn').forEach(b =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(x => {
+        x.classList.remove('active', 'bg-primary', 'text-white', 'border-primary');
+        x.classList.add('border-gray-300', 'dark:border-gray-600');
+      });
+      b.classList.add('active', 'bg-primary', 'text-white', 'border-primary');
+      b.classList.remove('border-gray-300', 'dark:border-gray-600');
+      loadData("projects");
+    })
+  );
+  
+  // Scroll Progress & Mobile Menu
+  window.addEventListener('scroll', updateScrollProgress);
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () =>
+    document.getElementById('mobile-menu')?.classList.toggle('hidden')
+  );
+  
+  // Typing Effect Delay
+  setTimeout(initTypingEffect, 300);
+  
+  // Load Initial Data
+  loadData("projects");
+  loadData("certificates");
+  
+  // Update Year in Footer
+  document.getElementById('year').textContent = new Date().getFullYear();
+});
+</script>
 </body>
 
 </html>
