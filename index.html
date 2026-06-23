@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Saifulloh Gymnastiar</title>
+    <title>Saifulloh Gymnastiar – Portfolio</title>
 
     <link rel="icon" type="image/png" href="favicon.png">
-
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -23,7 +23,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon"
         href="data:image/x-icon;base64,AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAD//wAA">
-    
+
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -853,7 +853,7 @@
                 <div
                     class="inline-flex items-center px-4 py-2 bg-primary/10 dark:bg-primary/20 rounded-full mb-6 animate-pulse-slow">
                     <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-ping"></span>
-                    <span class="text-primary font-semibold text-sm">👋 Available for Internship</span>
+                    <span class="text-primary font-semibold text-sm">👋 Available for Projects</span>
                 </div>
                 <span class="text-primary font-semibold tracking-wider uppercase mb-3 block text-sm">Mahasiswa Teknik
                     Informatika</span>
@@ -1387,7 +1387,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold mb-2">Kategori *</label>
-                        <select id="proj-category"
+                        <select id="proj-category" onchange="toggleWebDetailFields()"
                             class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition">
                             <option value="video">🎬 Video</option>
                             <option value="design">🎨 Desain</option>
@@ -1446,6 +1446,58 @@
                             class="absolute inset-0 w-full h-full object-cover hidden rounded-2xl">
                     </div>
                 </div>
+
+                <!-- Field tambahan KHUSUS kategori Web: Deskripsi, Fitur, Tech Stack, GitHub, Demo, Status -->
+                <div id="web-detail-fields" class="hidden">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Deskripsi Proyek</label>
+                    <textarea id="proj-description" rows="3"
+                        class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition resize-none"
+                        placeholder="Jelaskan secara singkat proyek ini..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Fitur Utama <span class="text-gray-400 font-normal">(satu fitur per baris)</span></label>
+                    <textarea id="proj-features" rows="3"
+                        class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition resize-none"
+                        placeholder="Full CRUD operations&#10;Dashboard dengan data overview&#10;Search dan filter functionality"></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold mb-2">Tech Stack <span class="text-gray-400 font-normal">(pisahkan dengan koma)</span></label>
+                    <input type="text" id="proj-techstack"
+                        class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition"
+                        placeholder="Contoh: PHP, MySQL, Bootstrap, JavaScript">
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2"><i class="fab fa-github mr-1"></i> Link GitHub</label>
+                        <input type="url" id="proj-github"
+                            class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition"
+                            placeholder="https://github.com/username/repo">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2"><i class="fas fa-external-link-alt mr-1"></i> Link Live Demo</label>
+                        <input type="url" id="proj-demo"
+                            class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition"
+                            placeholder="https://demo-proyek.com">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold mb-2">Status Proyek</label>
+                    <select id="proj-status"
+                        class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition">
+                        <option value="Completed">✅ Completed</option>
+                        <option value="In Progress">🚧 In Progress</option>
+                        <option value="Planned">🗓️ Planned</option>
+                    </select>
+                </div>
+
+                </div>
+                <!-- /web-detail-fields -->
 
                 <button type="submit"
                     class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-green-500/30 transition hover:-translate-y-0.5 active:translate-y-0">
@@ -1578,6 +1630,67 @@
             </div>
         </div>
         <p id="lightbox-video-title" class="mt-4 text-center text-white text-lg font-semibold"></p>
+    </div>
+</div>
+
+<!-- ================= PROJECT DETAIL MODAL (Github + Live Demo) ================= -->
+<div id="project-detail-modal"
+    class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+    onclick="if(event.target === this) closeProjectDetailModal()">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg my-8 relative shadow-2xl overflow-hidden"
+        data-aos="zoom-in" onclick="event.stopPropagation()">
+
+        <button onclick="closeProjectDetailModal()"
+            class="absolute top-4 right-4 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white hover:bg-red-500 transition">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- Thumbnail -->
+        <div id="pd-thumb-wrap" class="relative h-56 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <img id="pd-thumb" src="" class="w-full h-full object-cover" alt="">
+        </div>
+
+        <div class="p-6 sm:p-8">
+            <!-- Status + Number badge row -->
+            <div class="flex items-center justify-between mb-4">
+                <span id="pd-status"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-green-500/10 text-green-500 border-green-500/30">
+                    <i class="fas fa-circle-check"></i> Completed
+                </span>
+                <span id="pd-index" class="text-3xl font-extrabold text-gray-200 dark:text-gray-700 leading-none">01</span>
+            </div>
+
+            <!-- Category + Title -->
+            <span id="pd-category" class="inline-block px-3 py-1 mb-2 bg-primary/10 text-primary text-xs font-semibold rounded-full"></span>
+            <h3 id="pd-title" class="text-2xl font-bold mb-3 leading-snug"></h3>
+
+            <!-- Description -->
+            <p id="pd-description" class="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-5"></p>
+
+            <!-- Features -->
+            <ul id="pd-features" class="space-y-2 mb-5"></ul>
+
+            <!-- Divider -->
+            <div id="pd-divider" class="border-t border-gray-200 dark:border-gray-700 mb-5"></div>
+
+            <!-- Tech stack badges -->
+            <div id="pd-techstack" class="flex flex-wrap gap-2 mb-6"></div>
+
+            <!-- Action buttons: GitHub & Live Demo -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a id="pd-github" href="#" target="_blank" rel="noopener"
+                    class="hidden flex-1 items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gray-900 dark:bg-gray-700 text-white font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition hover:-translate-y-0.5">
+                    <i class="fab fa-github text-lg"></i> GitHub
+                </a>
+                <a id="pd-demo" href="#" target="_blank" rel="noopener"
+                    class="hidden flex-1 items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium hover:shadow-lg hover:shadow-primary/30 transition hover:-translate-y-0.5">
+                    <i class="fas fa-arrow-up-right-from-square text-sm"></i> Live Demo
+                </a>
+            </div>
+            <p id="pd-no-links" class="hidden text-center text-sm text-gray-400 mt-2">
+                <i class="fas fa-info-circle mr-1"></i> Belum ada link GitHub/Demo untuk proyek ini.
+            </p>
+        </div>
     </div>
 </div>
 
@@ -1947,8 +2060,18 @@ function logout() {
             document.getElementById('proj-placeholder')?.classList.remove('hidden');
             document.getElementById('video-upload-container')?.classList.add('hidden');
             document.getElementById('image-upload-container')?.classList.remove('hidden');
+            toggleWebDetailFields();
             document.getElementById('project-modal')?.classList.remove('hidden');
             if (typeof AOS !== 'undefined') AOS.refresh();
+        }
+
+        // Tampilkan field Deskripsi/Fitur/Tech Stack/GitHub/Demo/Status
+        // HANYA ketika kategori proyek yang dipilih adalah "Web"
+        function toggleWebDetailFields() {
+            const kategori = document.getElementById('proj-category')?.value;
+            const container = document.getElementById('web-detail-fields');
+            if (!container) return;
+            container.classList.toggle('hidden', kategori !== 'web');
         }
 
         function openCertModal() {
@@ -2130,7 +2253,9 @@ function logout() {
         // 🎯 PORTFOLIO EVENT LISTENERS
         // =====================================================
         function setupPortfolioEvents() {
-            document.querySelectorAll('.portfolio-item').forEach(item => {
+            // Project card sudah punya onclick="handleProjectClick(...)" inline,
+            // jadi di sini cukup tangani klik untuk certificate saja agar tidak dobel.
+            document.querySelectorAll('.portfolio-item[data-item-type="certificate"]').forEach(item => {
                 item.addEventListener('click', function (e) {
                     if (e.target.closest('.delete-btn')) return;
                     openItemByIndex(parseInt(this.dataset.idx), this.dataset.itemType);
@@ -2406,7 +2531,7 @@ window.openVideoLightbox = function(videoId, title) {
              data-item-type="project"
              data-aos="fade-up"
              data-aos-delay="${idx*100}"
-             onclick="handleProjectClick(${idx}, '${item.TipeMedia}', '${videoId || fileId}', '${(item.Judul||'').replace(/'/g, "\\'")}')">
+             onclick="handleProjectClick(${idx}, '${item.TipeMedia}', '${videoId || fileId}', '${(item.Judul||'').replace(/'/g, "\\'")}', '${(item.Kategori||'').toLowerCase()}')">
       <div class="relative h-56 overflow-hidden bg-gray-200 dark:bg-gray-700">
         ${isVid ? `
           <div class="w-full h-full relative">
@@ -2487,14 +2612,122 @@ window.openVideoLightbox = function(videoId, title) {
         }
 
         // Handler untuk klik project
-window.handleProjectClick = function(index, tipeMedia, videoId, judul) {
-    console.log('Handle project click:', { index, tipeMedia, videoId, judul });
+window.handleProjectClick = function(index, tipeMedia, videoId, judul, kategori) {
+    const kat = (kategori || '').toString().trim().toLowerCase();
+    console.log('Handle project click:', { index, tipeMedia, videoId, judul, kategori: kat });
     if ((tipeMedia || '').toLowerCase() === 'video') {
+        // Video: putar langsung via YouTube
         openVideoLightbox(videoId, judul);
+    } else if (kat === 'web') {
+        // Hanya proyek Web yang dapat modal detail (deskripsi, fitur, tech stack, GitHub & Live Demo)
+        openProjectDetailModal(index);
     } else {
+        // Desain & lainnya: tampilkan gambar full seperti sebelumnya
         openItemByIndex(index, 'project');
     }
 };
+
+        // =====================================================
+        // 🪪 PROJECT DETAIL MODAL (Deskripsi, Fitur, Tech Stack, GitHub & Live Demo)
+        // =====================================================
+        window.openProjectDetailModal = (index) => {
+            const item = projects[index];
+            if (!item) { showToast('❌ Data tidak ditemukan', 'error'); return; }
+
+            const modal = document.getElementById('project-detail-modal');
+
+            // --- Thumbnail ---
+            const fileId = extractFileId(item.FileURL);
+            const thumbId = extractFileId(item.ThumbnailURL) || fileId;
+            const thumbUrl = thumbId ? `https://lh3.googleusercontent.com/d/${thumbId}=w1000` : '';
+            const thumbWrap = document.getElementById('pd-thumb-wrap');
+            const thumbImg = document.getElementById('pd-thumb');
+            if (thumbUrl) {
+                thumbImg.src = thumbUrl;
+                thumbImg.onerror = () => { thumbWrap.classList.add('hidden'); };
+                thumbWrap.classList.remove('hidden');
+            } else {
+                thumbWrap.classList.add('hidden');
+            }
+
+            // --- Status badge ---
+            const statusMap = {
+                'completed':   { label: 'Completed',   icon: 'fa-circle-check', cls: 'bg-green-500/10 text-green-500 border-green-500/30' },
+                'in progress': { label: 'In Progress',  icon: 'fa-spinner',      cls: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30' },
+                'planned':     { label: 'Planned',      icon: 'fa-calendar',     cls: 'bg-blue-500/10 text-blue-500 border-blue-500/30' },
+            };
+            const statusKey = (item.Status || 'completed').toLowerCase();
+            const statusInfo = statusMap[statusKey] || statusMap['completed'];
+            const statusEl = document.getElementById('pd-status');
+            statusEl.className = `inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusInfo.cls}`;
+            statusEl.innerHTML = `<i class="fas ${statusInfo.icon}"></i> ${statusInfo.label}`;
+
+            // --- Index number (urutan tampil, dimulai dari 01) ---
+            document.getElementById('pd-index').textContent = String(index + 1).padStart(2, '0');
+
+            // --- Category, title, description ---
+            document.getElementById('pd-category').textContent = item.Kategori || '';
+            document.getElementById('pd-title').textContent = item.Judul || 'Untitled';
+            const descEl = document.getElementById('pd-description');
+            descEl.textContent = item.Deskripsi || '';
+            descEl.classList.toggle('hidden', !item.Deskripsi);
+
+            // --- Features list ---
+            const featuresEl = document.getElementById('pd-features');
+            const features = (item.Fitur || '').split('|').map(f => f.trim()).filter(Boolean);
+            featuresEl.innerHTML = features.map(f => `
+                <li class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <i class="fas fa-caret-right text-primary mt-0.5"></i>
+                    <span>${f.replace(/</g, "&lt;")}</span>
+                </li>`).join('');
+            featuresEl.classList.toggle('hidden', features.length === 0);
+
+            // --- Divider visibility (hanya tampil kalau ada tech stack) ---
+            const techStack = (item.TechStack || '').split(',').map(t => t.trim()).filter(Boolean);
+            document.getElementById('pd-divider').classList.toggle('hidden', techStack.length === 0);
+
+            // --- Tech stack badges ---
+            const techEl = document.getElementById('pd-techstack');
+            techEl.innerHTML = techStack.map(t => `
+                <span class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary border border-primary/20">${t.replace(/</g, "&lt;")}</span>
+            `).join('');
+            techEl.classList.toggle('hidden', techStack.length === 0);
+
+            // --- GitHub & Live Demo buttons ---
+            const githubBtn = document.getElementById('pd-github');
+            const demoBtn = document.getElementById('pd-demo');
+            const noLinksMsg = document.getElementById('pd-no-links');
+            let hasLink = false;
+
+            if (item.GithubURL) {
+                githubBtn.href = item.GithubURL;
+                githubBtn.classList.remove('hidden');
+                githubBtn.classList.add('flex');
+                hasLink = true;
+            } else {
+                githubBtn.classList.add('hidden');
+                githubBtn.classList.remove('flex');
+            }
+
+            if (item.DemoURL) {
+                demoBtn.href = item.DemoURL;
+                demoBtn.classList.remove('hidden');
+                demoBtn.classList.add('flex');
+                hasLink = true;
+            } else {
+                demoBtn.classList.add('hidden');
+                demoBtn.classList.remove('flex');
+            }
+
+            noLinksMsg.classList.toggle('hidden', hasLink);
+
+            modal.classList.remove('hidden');
+            if (typeof AOS !== 'undefined') AOS.refresh();
+        };
+
+        function closeProjectDetailModal() {
+            document.getElementById('project-detail-modal')?.classList.add('hidden');
+        }
 
         // =====================================================
         // 🔐 AUTHENTICATION FUNCTIONS
@@ -2626,13 +2859,26 @@ function setupFormListeners() {
             console.log("Final URLs - File:", fileUrl, "Thumbnail:", thumbnailUrl);
             
             // Simpan ke Google Sheet
-            // Urutan: Judul, Kategori, TipeMedia, FileURL (YouTube ID), ThumbnailURL, Timestamp
+            // Urutan kolom: Judul, Kategori, TipeMedia, FileURL, ThumbnailURL,
+            //               Deskripsi, Fitur, TechStack, GithubURL, DemoURL, Status
+            const featuresList = document.getElementById("proj-features").value
+                .split('\n')
+                .map(f => f.trim())
+                .filter(Boolean)
+                .join('|'); // disimpan dipisah '|' di satu sel sheet
+
             const fields = [
                 document.getElementById("proj-title").value,
                 document.getElementById("proj-category").value,
                 projType,
                 fileUrl,
-                thumbnailUrl
+                thumbnailUrl,
+                document.getElementById("proj-description").value.trim(),
+                featuresList,
+                document.getElementById("proj-techstack").value.trim(),
+                document.getElementById("proj-github").value.trim(),
+                document.getElementById("proj-demo").value.trim(),
+                document.getElementById("proj-status").value
             ];
             
             console.log("Saving to sheet:", fields);
@@ -2832,7 +3078,7 @@ function setupFormListeners() {
         // =====================================================
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
-                ['login-modal', 'project-modal', 'cert-modal', 'crop-modal', 'image-lightbox', 'video-lightbox']
+                ['login-modal', 'project-modal', 'cert-modal', 'crop-modal', 'image-lightbox', 'video-lightbox', 'project-detail-modal']
                     .forEach(id => document.getElementById(id)?.classList.add('hidden'));
                 if (cropper) { cropper.destroy(); cropper = null; }
                 window.closeMediaModal();
