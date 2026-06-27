@@ -1389,8 +1389,8 @@
                         <label class="block text-sm font-semibold mb-2">Kategori *</label>
                         <select id="proj-category" onchange="toggleWebDetailFields()"
                             class="w-full px-4 py-3 rounded-xl border dark:bg-gray-700 dark:border-gray-600 focus:border-primary focus:outline-none transition">
-                            <option value="video">🎬 Video</option>
                             <option value="design">🎨 Desain</option>
+                            <option value="video">🎬 Video</option>
                             <option value="web">💻 Web</option>
                         </select>
                     </div>
@@ -1912,35 +1912,67 @@ const toBase64 = file => new Promise((resolve, reject) => {
 });
 
 // 📁 UPLOAD FILE (Dengan Token)
+// PENTING: fungsi ini SEKARANG MELEMPAR ERROR jika gagal, alih-alih diam-diam
+// mengembalikan null. Ini supaya proses simpan project/sertifikat di pemanggil
+// (lihat setupFormListeners) BERHENTI total saat upload gagal — bukan lanjut
+// menyimpan ke sheet dengan ThumbnailURL/FileURL kosong.
 async function uploadFile(file) {
   if (!file) return null;
-  
+
   const token = sessionStorage.getItem('admin_token');
   if (!token) {
     showToast('❌ Session expired. Silakan login ulang.', 'error');
     setTimeout(() => openLoginModal(), 1000);
-    return null;
+    throw new Error('Session expired. Silakan login ulang.');
   }
-  
-  try {
-    const base64 = await toBase64(file);
+
+  const base64 = await toBase64(file);
+  const payload = JSON.stringify({
+    action: "upload",
+    base64,
+    mimeType: file.type,
+    filename: file.name,
+    token: token
+  });
+
+  // Helper internal: 1x percobaan kirim+parse.
+  async function attemptUpload() {
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ 
-        action: "upload", 
-        base64, 
-        mimeType: file.type, 
-        filename: file.name,
-        token: token
-      })
+      body: payload
     });
-    const data = await res.json();
-    if (data.status !== "success") throw new Error(data.message || "Upload failed");
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      // Response bukan JSON valid (mis. halaman otorisasi Google, atau HTML error).
+      // Ini SERING terjadi walau file sudah terlanjur ke-upload ke Drive di sisi server.
+      throw new Error(
+        "Respons server tidak valid (kemungkinan butuh otorisasi ulang di Apps Script, " +
+        "atau deployment belum di-deploy ulang setelah update kode)."
+      );
+    }
+
+    if (data.status !== "success" || !data.url) {
+      throw new Error(data.message || "Upload gagal: server tidak mengembalikan URL.");
+    }
     return data.url;
-  } catch (err) {
-    showToast('❌ Upload gagal: ' + err.message, 'error');
-    return null;
+  }
+
+  // Coba sekali, kalau gagal karena alasan jaringan/parse, coba sekali lagi
+  // sebelum benar-benar menyerah (mengurangi false-negative dari hiccup jaringan).
+  try {
+    return await attemptUpload();
+  } catch (firstErr) {
+    console.warn("Upload percobaan 1 gagal, mencoba ulang sekali:", firstErr.message);
+    try {
+      return await attemptUpload();
+    } catch (secondErr) {
+      showToast('❌ Upload gagal: ' + secondErr.message, 'error');
+      throw secondErr; // lempar ke pemanggil — JANGAN lanjut simpan ke sheet
+    }
   }
 }
 
@@ -1951,19 +1983,24 @@ async function saveToSheet(type, fields) {
     showToast('❌ Session expired. Silakan login ulang.', 'error');
     throw new Error('No token');
   }
-  
+
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ 
-      action: "save", 
-      type, 
-      fields, 
+    body: JSON.stringify({
+      action: "save",
+      type,
+      fields,
       token: token
     })
   });
-  
-  const data = await res.json();
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (parseErr) {
+    throw new Error("Respons server tidak valid saat menyimpan data ke sheet.");
+  }
   if (data.status !== "success") throw new Error(data.message || "Save failed");
 }
 
@@ -2410,6 +2447,76 @@ window.openVideoLightbox = function(videoId, title) {
         }
 
         // =====================================================
+        // 🔁 IMAGE FALLBACK CHAIN
+        // Saat <img> gagal load dari format URL pertama (lh3.googleusercontent.com),
+        // coba format lain sebelum jatuh ke placeholder. Ini diperlukan karena
+        // lh3.googleusercontent.com kadang menolak embed <img> (hotlink) dari
+        // domain lain untuk file yang baru saja diupload, walau link itu sendiri
+        // valid jika dibuka langsung di tab browser.
+        // Dipanggil dari onerror="imgFallback(this, '<fileId>', 0)"
+        // =====================================================
+        window.imgFallback = function (imgEl, fileId, attempt) {
+            if (!fileId) { imgFallbackToPlaceholder(imgEl); return; }
+
+            const formats = [
+                `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`,
+                `https://drive.google.com/uc?export=view&id=${fileId}`,
+                `https://lh3.googleusercontent.com/d/${fileId}`
+            ];
+
+            const next = attempt || 0;
+            if (next >= formats.length) {
+                imgFallbackToPlaceholder(imgEl);
+                return;
+            }
+
+            // Pasang handler error untuk percobaan berikutnya SEBELUM ganti src,
+            // supaya kalau format ini juga gagal, otomatis lanjut ke format selanjutnya.
+            imgEl.onerror = () => window.imgFallback(imgEl, fileId, next + 1);
+            imgEl.src = formats[next];
+        };
+
+        // Varian khusus utk thumbnail video: fallback terakhirnya ke gradient
+        // bertema YouTube (bukan ikon gambar generik) agar konsisten secara visual.
+        window.imgFallbackVideo = function (imgEl, fileId, attempt, titleText) {
+            if (!fileId) { imgFallbackToYoutubePlaceholder(imgEl, titleText); return; }
+
+            const formats = [
+                `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`,
+                `https://drive.google.com/uc?export=view&id=${fileId}`,
+                `https://lh3.googleusercontent.com/d/${fileId}`
+            ];
+
+            const next = attempt || 0;
+            if (next >= formats.length) {
+                imgFallbackToYoutubePlaceholder(imgEl, titleText);
+                return;
+            }
+
+            imgEl.onerror = () => window.imgFallbackVideo(imgEl, fileId, next + 1, titleText);
+            imgEl.src = formats[next];
+        };
+
+        function imgFallbackToYoutubePlaceholder(imgEl, titleText) {
+            imgEl.onerror = null;
+            imgEl.style.display = 'none';
+            const parent = imgEl.parentElement;
+            if (parent) {
+                const safeTitle = (titleText || 'Video').substring(0, 30);
+                parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-600"><div class="text-center text-white"><i class="fab fa-youtube text-6xl mb-2"></i><p class="text-xs">${safeTitle}</p></div></div>`;
+            }
+        }
+
+        function imgFallbackToPlaceholder(imgEl) {
+            imgEl.onerror = null;
+            imgEl.style.display = 'none';
+            const parent = imgEl.parentElement;
+            if (parent) {
+                parent.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white"><i class="fas fa-image text-4xl"></i></div>`;
+            }
+        }
+
+        // =====================================================
         // 🗑️ DELETE ITEM FUNCTION
         // =====================================================
         window.deleteItemByIndex = async (index, type) => {
@@ -2540,7 +2647,7 @@ window.openVideoLightbox = function(videoId, title) {
             ${thumbnailId ? `
               <img src="https://lh3.googleusercontent.com/d/${thumbnailId}=w1000"
                    class="w-full h-full object-cover img-zoom"
-                   onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-600\\'><div class=\\'text-center text-white\\'><i class=\\'fab fa-youtube text-6xl mb-2\\'></i><p class=\\'text-xs\\'>${(item.Judul||'Video').substring(0, 30)}</p></div></div>'">
+                   onerror="imgFallbackVideo(this, '${thumbnailId}', 1, '${(item.Judul||'Video').replace(/'/g, "\\'")}')">
             ` : `
               <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-500 to-pink-600">
                 <div class="text-center text-white">
@@ -2560,7 +2667,7 @@ window.openVideoLightbox = function(videoId, title) {
         ` : `
           <img src="${displayImageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}"
                class="img-zoom w-full h-full object-cover"
-               onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white\\'><i class=\\'fas fa-image text-4xl\\'></i></div>'">
+               onerror="imgFallback(this, '${thumbnailId || fileId}', 1)">
         `}
         
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
@@ -2581,7 +2688,7 @@ window.openVideoLightbox = function(videoId, title) {
                         const certImageUrl = certFileId ? `https://lh3.googleusercontent.com/d/${certFileId}=w1000` : '';
                         return `<div class="portfolio-item bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden border border-gray-200/50 dark:border-gray-700/50 cursor-pointer interactive-card" data-idx="${idx}" data-item-type="certificate" data-aos="fade-up" data-aos-delay="${idx*100}">
                           <div class="h-52 overflow-hidden relative group bg-gray-200 dark:bg-gray-700">
-                            <img src="${certImageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}" class="w-full h-full object-cover img-zoom" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white\\'><i class=\\'fas fa-image text-4xl\\'></i></div>'">
+                            <img src="${certImageUrl || 'https://via.placeholder.com/400x300?text=No+Image'}" class="w-full h-full object-cover img-zoom" onerror="imgFallback(this, '${certFileId}', 1)">
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                               <div class="bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full text-sm font-medium">🔍 Lihat Detail</div>
                             </div>
@@ -2648,10 +2755,28 @@ window.handleProjectClick = function(index, tipeMedia, videoId, judul, kategori)
             const thumbWrap = document.getElementById('pd-thumb-wrap');
             const thumbImg = document.getElementById('pd-thumb');
             thumbImg.onerror = null;
+            const thumbFileIdForFallback = thumbId || (fileId && !isVid ? fileId : '');
             if (thumbUrl) {
                 thumbWrap.classList.remove('hidden');
-                thumbImg.onerror = () => { thumbWrap.classList.add('hidden'); };
                 thumbImg.src = thumbUrl;
+                // Coba format URL alternatif berurutan sebelum menyerah & sembunyikan wrapper.
+                // (Tidak memakai window.imgFallback di sini karena fungsi itu mengganti
+                // innerHTML parent saat gagal total, yang akan menghapus elemen #pd-thumb
+                // dari DOM — merusak modal ini untuk render berikutnya.)
+                const altFormats = thumbFileIdForFallback ? [
+                    `https://drive.google.com/thumbnail?id=${thumbFileIdForFallback}&sz=w1000`,
+                    `https://drive.google.com/uc?export=view&id=${thumbFileIdForFallback}`
+                ] : [];
+                let attempt = 0;
+                thumbImg.onerror = () => {
+                    if (attempt < altFormats.length) {
+                        thumbImg.src = altFormats[attempt];
+                        attempt++;
+                    } else {
+                        thumbImg.onerror = null;
+                        thumbWrap.classList.add('hidden');
+                    }
+                };
             } else {
                 thumbWrap.classList.add('hidden');
                 thumbImg.src = '';
@@ -2950,7 +3075,8 @@ function setupFormListeners() {
             await loadData("certificates");
             showToast('✅ Sertifikat tersimpan', 'success');
         } catch (err) {
-            alert(err.message);
+            console.error("Error saving certificate:", err);
+            showToast('❌ Gagal: ' + err.message, 'error');
         }
         btn.disabled = false;
         btn.innerHTML = orig;
