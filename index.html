@@ -24,6 +24,15 @@
     <link rel="icon" type="image/x-icon"
         href="data:image/x-icon;base64,AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAD//wAA">
 
+    <!-- Fix theme ASAP to prevent flash -->
+    <script>
+        (function() {
+            const s = localStorage.getItem('theme');
+            if (s === 'dark' || (!s && window.matchMedia('(prefers-color-scheme:dark)').matches))
+                document.documentElement.classList.add('dark');
+        })();
+    </script>
+
     <!-- Tailwind Config -->
     <script>
         tailwind.config = {
@@ -53,7 +62,19 @@
 
     <!-- Custom Styles -->
     <style>
-        /* ===== Drop Zone & Image Container ===== */
+        /* ===== MOBILE VIEWPORT FIX ===== */
+        /* Use CSS custom property for stable viewport height on mobile */
+        :root {
+            --vh: 1vh;
+        }
+
+        /* Hero section uses stable height that doesn't jump with mobile browser chrome */
+        #home {
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
+        }
+
+        /* Drop Zone & Image Container ===== */
         .drop-zone {
             border: 2px dashed #cbd5e1;
             transition: all 0.3s ease;
@@ -3256,8 +3277,27 @@ function setupFormListeners() {
 // 🚀 DOM CONTENT LOADED - INITIALIZATION
 // =====================================================
 document.addEventListener("DOMContentLoaded", () => {
-  // Initialize AOS Animation
-  if (typeof AOS !== 'undefined') AOS.init({ duration: 800, once: true, offset: 100 });
+  // === MOBILE VIEWPORT HEIGHT FIX ===
+  // Fixes the "jumpy" hero section on mobile browsers where the address bar
+  // collapses after first scroll, causing layout recalculation.
+  function setVH() {
+    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  }
+  setVH();
+  // Update on resize but debounce to avoid jank
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(setVH, 100);
+  });
+
+  // === AOS ANIMATION INIT ===
+  // Mobile pakai offset 0 agar elemen yang langsung terlihat di viewport
+  // langsung di-trigger tanpa perlu scroll dulu
+  if (typeof AOS !== 'undefined') {
+    const isMobile = window.innerWidth < 768;
+    AOS.init({ duration: 800, once: true, offset: isMobile ? 0 : 100 });
+  }
   
   // Initialize Particles.js
   if (typeof particlesJS !== 'undefined' && document.getElementById('particles-js'))
@@ -3286,7 +3326,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   // Initialize Theme & Profile
-  checkTheme();
   loadProfileImage();
   
   // Setup Drag & Drop Zones
