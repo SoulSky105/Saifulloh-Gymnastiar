@@ -770,6 +770,16 @@
             animation-delay: 0.2s;
         }
     </style>
+<style>
+.cs-box{display:flex;align-items:center;justify-content:center;width:100%;flex-direction:column;gap:10px}
+.cs-box.hidden{display:none}
+#lightbox-stack{max-width:100%}
+.cs-stack{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;margin:18px 0}
+.cs-card{position:absolute;border-radius:16px;background:#222 center/cover no-repeat;box-shadow:0 8px 24px rgba(0,0,0,.4);transform-origin:20% 100%;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s;cursor:grab}
+.cs-card.drag{transition:none;cursor:grabbing}
+.cs-hint{font-size:12px;color:#9ca3af;display:flex;gap:12px;align-items:center}
+.cs-hint button{background:rgba(127,127,127,.25);color:inherit;border:0;border-radius:999px;width:28px;height:28px;cursor:pointer}
+</style>
 </head>
 
 <body class="bg-gray-50 text-gray-800 dark:bg-dark dark:text-gray-200 transition-colors duration-300 font-sans overflow-x-hidden">
@@ -1432,14 +1442,15 @@
                     <div id="proj-drop-zone"
                         class="drop-zone w-full h-48 rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
                         <input type="file" id="proj-file"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*"
-                            onchange="previewImage(this, 'proj-preview')">
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*" multiple
+                            onchange="previewImage(this, 'proj-preview'); showPhotoCount(this)">
                         <div id="proj-placeholder" class="text-center pointer-events-none">
                             <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
                             <p class="text-sm text-gray-500 font-medium">Drag & Drop atau Klik Upload</p>
-                            <p class="text-xs text-gray-400 mt-1">PNG, JPG, WebP • Max 5MB</p>
+                            <p class="text-xs text-gray-400 mt-1">PNG, JPG, WebP • Max 5MB • Bisa pilih &gt;1 foto (jadi kartu swipe)</p>
                         </div>
                         <img id="proj-preview" class="absolute inset-0 w-full h-full object-cover hidden rounded-2xl">
+                        <span id="proj-count" class="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/60 text-white text-xs hidden"></span>
                     </div>
                 </div>
 
@@ -1621,6 +1632,7 @@
             onclick="closeMediaModal(event)" title="Tutup">
             <i class="fas fa-times"></i>
         </button>
+        <div id="lightbox-stack" class="cs-box hidden" onclick="event.stopPropagation()"></div>
         <img id="lightbox-img" src="" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             alt="Full size image">
         <p id="lightbox-title" class="absolute bottom-4 left-0 right-0 text-center text-white text-lg font-semibold drop-shadow-lg">
@@ -2183,6 +2195,9 @@ function logout() {
                 }, 100);
             }
             
+            const _sb = document.getElementById('lightbox-stack');
+            if (_sb) { _sb.innerHTML = ''; _sb.classList.add('hidden'); }
+            document.getElementById('lightbox-img')?.classList.remove('hidden');
             // Clear gambar & cegah toast error palsu saat close
             const img = document.getElementById('lightbox-img');
             if (img) {
@@ -2356,6 +2371,17 @@ function logout() {
                     }
                 } else {
                     // Gambar biasa
+                    const _urls = (item.FileURL || '').split('|').filter(Boolean);
+                    if (_urls.length > 1) {
+                        lightboxImg.classList.add('hidden');
+                        const sb = document.getElementById('lightbox-stack');
+                        sb.classList.remove('hidden');
+                        mountCardSwipe(sb, _urls, Math.min(window.innerHeight * 0.65, 520), Math.min(window.innerWidth * 0.8, 640));
+                        document.getElementById('lightbox-title').textContent = item.Judul || 'Image';
+                        imgLightbox.classList.remove('hidden');
+                        vidLightbox.classList.add('hidden');
+                        return;
+                    }
                     const fileId = extractFileId(item.FileURL);
                     const imgUrl = fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : (item.FileURL || '');
                     lightboxImg.src = '';
@@ -2452,6 +2478,7 @@ window.openVideoLightbox = function(videoId, title) {
 
         function extractFileId(url) {
             if (!url) return "";
+            url = String(url).split('|')[0];
             const patterns = [
                 /[?&]id=([^&]+)/,
                 /\/d\/([^/?]+)/,
@@ -2617,7 +2644,7 @@ window.openVideoLightbox = function(videoId, title) {
             /file\/d\/([^/]+)/
         ];
         for (let pattern of patterns) {
-            const match = item.FileURL.match(pattern);
+            const match = item.FileURL.split('|')[0].match(pattern);
             if (match && match[1]) {
                 fileId = match[1];
                 break;
@@ -2775,6 +2802,16 @@ window.handleProjectClick = function(index, tipeMedia, videoId, judul, kategori)
                 : (fileId && !isVid ? `https://lh3.googleusercontent.com/d/${fileId}=w1000` : '');
             const thumbWrap = document.getElementById('pd-thumb-wrap');
             const thumbImg = document.getElementById('pd-thumb');
+            thumbWrap.querySelector('.cs-box')?.remove();
+            const _urls = (item.FileURL || '').split('|').filter(Boolean);
+            const _multi = !isVid && _urls.length > 1;
+            thumbImg.classList.toggle('hidden', _multi);
+            if (_multi) {
+                const b = document.createElement('div');
+                b.className = 'cs-box absolute inset-0';
+                thumbWrap.appendChild(b);
+                mountCardSwipe(b, _urls, 140, 240);
+            }
             thumbImg.onerror = null;
             const thumbFileIdForFallback = thumbId || (fileId && !isVid ? fileId : '');
             if (thumbUrl) {
@@ -3014,10 +3051,15 @@ function setupFormListeners() {
                 }
             } else {
                 // Upload image
-                const imageFile = document.getElementById("proj-file").files[0];
-                if (imageFile) {
-                    fileUrl = await uploadFile(imageFile);
-                    thumbnailUrl = fileUrl;
+                const imageFiles = Array.from(document.getElementById("proj-file").files);
+                const urls = [];
+                for (let i = 0; i < imageFiles.length; i++) {
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengunggah ${i + 1}/${imageFiles.length}...`;
+                    urls.push(await uploadFile(imageFiles[i]));
+                }
+                if (urls.length) {
+                    fileUrl = urls.join("|");   // banyak foto dipisah "|" di satu sel
+                    thumbnailUrl = urls[0];
                 }
             }
             
@@ -3058,6 +3100,7 @@ function setupFormListeners() {
             
             if (projPreview) projPreview.classList.add("hidden");
             if (projPlaceholder) projPlaceholder.classList.remove("hidden");
+            document.getElementById("proj-count")?.classList.add("hidden");
             if (thumbPreview) thumbPreview.classList.add("hidden");
             if (thumbPlaceholder) thumbPlaceholder.classList.remove("hidden");
             
@@ -3364,6 +3407,91 @@ document.addEventListener("DOMContentLoaded", () => {
   // Update Year in Footer
   document.getElementById('year').textContent = new Date().getFullYear();
 });
+</script>
+<script>
+// ===== KARTU SWIPE (dipakai jika foto proyek > 1) =====
+function showPhotoCount(input) {
+    const c = document.getElementById('proj-count');
+    if (!c) return;
+    const n = input.files ? input.files.length : 0;
+    c.textContent = n + ' foto';
+    c.classList.toggle('hidden', n < 2);
+}
+function mountCardSwipe(box, urls, h, maxW) {
+    maxW = maxW || Math.round(h * 1.4);
+    box.innerHTML = '';
+    const imgSrc = u => {
+        const id = (typeof extractFileId === 'function') ? extractFileId(u) : '';
+        return id ? `https://lh3.googleusercontent.com/d/${id}${id.includes('=') ? '' : '=w1000'}` : u;
+    };
+    const stack = document.createElement('div');
+    stack.className = 'cs-stack';
+    stack.style.height = h + 'px';
+    stack.style.width = maxW + 'px';
+    // Ukuran tiap kartu mengikuti rasio asli gambar (landscape/portrait/persegi)
+    const setSize = (d, nw, nh) => {
+        const sc = Math.min(maxW / nw, h / nh);
+        const w = Math.round(nw * sc), hh = Math.round(nh * sc);
+        d.style.width = w + 'px'; d.style.height = hh + 'px';
+        d.style.left = Math.round((maxW - w) / 2) + 'px';
+        d.style.top = Math.round((h - hh) / 2) + 'px';
+    };
+    const cards = urls.map(u => {
+        const d = document.createElement('div');
+        d.className = 'cs-card';
+        const src = imgSrc(u);
+        d.style.backgroundImage = `url("${src}")`;
+        setSize(d, 4, 3);
+        const im = new Image();
+        im.onload = () => setSize(d, im.naturalWidth || 4, im.naturalHeight || 3);
+        im.src = src;
+        stack.appendChild(d);
+        return d;
+    });
+    const hint = document.createElement('div');
+    hint.className = 'cs-hint';
+    hint.innerHTML = '<button type="button" aria-label="Sebelumnya">&#8592;</button><span></span><button type="button" aria-label="Berikutnya">&#8594;</button>';
+    box.append(stack, hint);
+    const label = hint.querySelector('span');
+    let order = urls.map((_, i) => i), busy = false;
+    const pose = p => { p = Math.min(p, 3); return `translateX(${p === 0 ? 24 : -p * 18}px) rotate(${p === 0 ? 8 : -p * 9 + 4}deg)`; };
+    function layout() {
+        order.forEach((id, p) => {
+            const c = cards[id];
+            c.style.transform = pose(p);
+            c.style.zIndex = urls.length - p;
+            c.style.opacity = p > 3 ? 0 : 1;
+        });
+        label.textContent = `${order[0] + 1} / ${urls.length} • geser kartu`;
+    }
+    function advance(dir) {
+        if (busy) return; busy = true;
+        const c = cards[order[0]];
+        c.classList.remove('drag');
+        c.style.transform = `translateX(${dir * 320}px) rotate(${dir * 30}deg)`;
+        c.style.opacity = 0;
+        setTimeout(() => {
+            order.push(order.shift());
+            c.style.transition = 'none';
+            c.style.zIndex = 0;
+            c.style.transform = pose(order.length - 1);
+            void c.offsetWidth;
+            c.style.transition = '';
+            layout();
+            busy = false;
+        }, 260);
+    }
+    let sx = null, dx = 0;
+    stack.addEventListener('pointerdown', e => { if (busy) return; sx = e.clientX; dx = 0; cards[order[0]].classList.add('drag'); stack.setPointerCapture(e.pointerId); });
+    stack.addEventListener('pointermove', e => { if (sx === null) return; dx = e.clientX - sx; cards[order[0]].style.transform = `translateX(${24 + dx}px) rotate(${8 + dx / 12}deg)`; });
+    const end = () => { if (sx === null) return; sx = null; cards[order[0]].classList.remove('drag'); Math.abs(dx) > 60 ? advance(dx > 0 ? 1 : -1) : layout(); };
+    stack.addEventListener('pointerup', end);
+    stack.addEventListener('pointercancel', end);
+    const [prev, next] = hint.querySelectorAll('button');
+    prev.onclick = e => { e.stopPropagation(); advance(1); };
+    next.onclick = e => { e.stopPropagation(); advance(-1); };
+    layout();
+}
 </script>
 </body>
 
